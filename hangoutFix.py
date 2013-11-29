@@ -24,6 +24,8 @@ import sys
 import string
 import time
 import re
+import ConfigParser
+import os
 
 class HangoutFix:
 
@@ -58,11 +60,28 @@ class HangoutFix:
 
 
 def main():
-    user = raw_input("Username:")
-    pw = raw_input("Password:")
+    config = ConfigParser.RawConfigParser()
+    cfgFile = os.path.expanduser('~/.hangoutfix')
+    config.read(cfgFile)
+    try:
+        user = config.get('hangoutfix', 'user')
+        pw = config.get('hangoutfix', 'pw')
+    except:
+        print 'Seems you haven\'t created the %s file yet.' % cfgFile
+        print ' I will create you a template. Please fill it in.'
+        config = ConfigParser.RawConfigParser()
 
-    sample = HangoutFix(user, pw)
-    sample.Run()
+        config.add_section('hangoutfix')
+        config.set('hangoutfix', 'user', 'GMAIL_HERE')
+        config.set('hangoutfix', 'pw', 'PASSWORD_HERE')
+
+        # Writing our configuration file to 'example.cfg'
+        with open(cfgFile, 'wb') as configfile:
+            config.write(configfile)
+    else:
+
+        sample = HangoutFix(user, pw)
+        sample.Run()
 
 if __name__ == '__main__':
     main()
