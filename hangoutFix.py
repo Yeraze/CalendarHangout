@@ -43,6 +43,10 @@ class HangoutFix:
         query = gdata.calendar.client.CalendarEventQuery(
             start_min=start_date, start_max=end_date)
         feed = self.cal_client.GetCalendarEventFeed(q=query)
+
+        batchJob = gdata.calendar.data.CalendarEventFeed()
+        batchSize = 0
+
         for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
             VC = "";
             print '\t%s. %s' % (i, an_event.title.text,)
@@ -50,12 +54,43 @@ class HangoutFix:
                 if (("%s" % fc).find("ns0:videoConference") > 0):
                     VC = findUrl.search("%s" % fc);
                     VC = VC.group(0).split()[1]
-                    if((an_event.content.text) and ((an_event.content.text).find(VC) > 0)):
+                    url = VC.split('\"')[1]
+                    if((an_event.content.text) and ((an_event.content.text).find(url) > 0)):
                         print '\t\t Already updated'
                     else:
+                        print '\t\t Adding url %s' % url
+
                         print '\t\t Updating content...'
-                        an_event.content.text = "<a %s>Google Hangout</a><br />%s" % (VC, an_event.content.text)
-                        self.cal_client.Update(an_event)     
+                        an_event.content.text = "%s<p />-- %s" % (an_event.content.text,url)
+                           # Create a WebContent object
+                        
+                        web_content = gdata.calendar.data.WebContent(url=url)
+
+                        # Create a WebContentLink object that contains the WebContent object
+                        title = 'Google Hangout'
+                        href = url
+                        type = 'text/html'
+                        web_content_link = gdata.calendar.data.WebContentLink(title=title, href=href,
+                            link_type=type, web_content=web_content)
+
+                        # Create an event that contains this web content
+                        an_event.link.append(web_content_link) 
+
+                        an_event.batch_id = gdata.data.BatchId(text='update-request')
+                        batchJob.AddUpdate(entry=an_event)
+                        batchSize = batchSize +1
+                else :
+                    print '\t\t No hangout found...'
+        if(batchSize > 0):
+            print "Sending batch update request ( %i updates )..." % batchSize
+            response_feed = self.cal_client.ExecuteBatch(batchJob,
+                gdata.calendar.client.DEFAULT_BATCH_URL)
+
+          # iterate the response feed to get the operation status
+            for entry in response_feed.entry:
+                if (entry.batch_status.code != 200):
+                    print "Error on update: %s - %s" % (entry.batch_status.code, entry.batch_status.reason)
+
 
 
     def Run(self):
