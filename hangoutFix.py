@@ -23,6 +23,7 @@ import getopt
 import sys
 import string
 import time
+import datetime
 import re
 import ConfigParser
 import os
@@ -48,15 +49,19 @@ class HangoutFix:
             for fc in an_event.extension_elements:
                 if (("%s" % fc).find("ns0:videoConference") > 0):
                     VC = findUrl.search("%s" % fc);
-                    print '\t\tVideoConference: %s' % (VC.group(0)).split()[1]
-                
-            for a_when in an_event.when:
-                print '\t\tStart time: %s' % (a_when.start,)
-                print '\t\tEnd time:   %s' % (a_when.end,)
+                    VC = VC.group(0).split()[1]
+                    if((an_event.content.text) and ((an_event.content.text).find(VC) > 0)):
+                        print '\t\t Already updated'
+                    else:
+                        print '\t\t Updating content...'
+                        an_event.content.text = "<a %s>Google Hangout</a><br />%s" % (VC, an_event.content.text)
+                        self.cal_client.Update(an_event)     
+
 
     def Run(self):
-
-        self._DateRangeQuery()
+        today = datetime.date.today().isoformat()
+        enddate = (datetime.date.today() + datetime.timedelta(days=7)).isoformat();
+        self._DateRangeQuery(start_date = today, end_date = enddate)
 
 
 def main():
