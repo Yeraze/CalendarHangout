@@ -1,5 +1,12 @@
-#!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
+# Copyright (C) 2013 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -7,109 +14,117 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Command-line skeleton application for Calendar API.
+Usage:
+  $ python sample.py
 
-__author__ = 'randall.hand@gmail.com (Randall Hand)'
+You can also get help on all the command-line flags the program understands
+by running:
 
+  $ python sample.py --help
 
-try:
-    from xml.etree import ElementTree
-except ImportError:
-    from elementtree import ElementTree
-import gdata.calendar.data
-import gdata.calendar.client
-import gdata.acl.data
-import atom
-import getopt
-import sys
-import string
-import time
-import datetime
-import re
-import ConfigParser
+"""
+
+import argparse
+import httplib2
 import os
+import sys
+import datetime
+import pprint
 
-class HangoutFix:
+from apiclient import discovery
+from oauth2client import file
+from oauth2client import client
+from oauth2client import tools
 
-    def __init__(self, email, password):
+CalendarID = '[FILL THIS IN]'
 
-        self.cal_client = gdata.calendar.client.CalendarClient(
-            source='Google-Calendar_Python_Sample-1.0')
-        self.cal_client.ClientLogin(email, password, self.cal_client.source)
-
-    def _DateRangeQuery(self, start_date='2013-11-24', end_date='2013-11-30'):
-        findUrl = re.compile(r"link href=\"(\S+)\"")
-        print 'Date range query for events on Primary Calendar: %s to %s' % (
-            start_date, end_date,)
-        query = gdata.calendar.client.CalendarEventQuery(
-            start_min=start_date, start_max=end_date)
-        feed = self.cal_client.GetCalendarEventFeed(q=query)
-
-        batchJob = gdata.calendar.data.CalendarEventFeed()
-        batchSize = 0
-
-        for i, an_event in zip(xrange(len(feed.entry)), feed.entry):
-            VC = "";
-            print '\t%s. %s' % (i, an_event.title.text,)
-            for fc in an_event.extension_elements:
-                if (("%s" % fc).find("ns0:videoConference") > 0):
-                    VC = findUrl.search("%s" % fc);
-                    VC = VC.group(0).split()[1]
-                    url = VC.split('\"')[1]
-                    if((an_event.content.text) and ((an_event.content.text).find(url) > 0)):
-                        print '\t\t Already updated'
-                    else:
-                        print '\t\t Adding url %s' % url
-
-                        print '\t\t Updating content...'
-                        an_event.content.text = "%s<p />-- %s" % (an_event.content.text,url)
-                           # Create a WebContent object
-                        
-                        an_event.batch_id = gdata.data.BatchId(text='update-request')
-                        batchJob.AddUpdate(entry=an_event)
-                        batchSize = batchSize +1
-                else :
-                    print '\t\t No hangout found...'
-        if(batchSize > 0):
-            print "Sending batch update request ( %i updates )..." % batchSize
-            response_feed = self.cal_client.ExecuteBatch(batchJob,
-                gdata.calendar.client.DEFAULT_BATCH_URL)
-
-          # iterate the response feed to get the operation status
-            for entry in response_feed.entry:
-                if (int(entry.batch_status.code) != 200):
-                    print "Error on update: %s - %s" % (entry.batch_status.code, entry.batch_status.reason)
+# Parser for command-line arguments.
+parser = argparse.ArgumentParser(
+    description=__doc__,
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    parents=[tools.argparser])
 
 
+# CLIENT_SECRETS is name of a file containing the OAuth 2.0 information for this
+# application, including client_id and client_secret. You can see the Client ID
+# and Client secret on the APIs page in the Cloud Console:
+# <https://cloud.google.com/console#/project/157180257281/apiui>
+CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
 
-    def Run(self):
-        today = datetime.date.today().isoformat()
-        enddate = (datetime.date.today() + datetime.timedelta(days=7)).isoformat();
-        self._DateRangeQuery(start_date = today, end_date = enddate)
+# Set up a Flow object to be used for authentication.
+# Add one or more of the following scopes. PLEASE ONLY ADD THE SCOPES YOU
+# NEED. For more information on using scopes please see
+# <https://developers.google.com/+/best-practices>.
+FLOW = client.flow_from_clientsecrets(CLIENT_SECRETS,
+                                      scope=[
+                                      'https://www.googleapis.com/auth/calendar',
+                                      'https://www.googleapis.com/auth/calendar.readonly',
+                                      ],
+                                      message=tools.message_if_missing(CLIENT_SECRETS))
 
 
-def main():
-    config = ConfigParser.RawConfigParser()
-    cfgFile = os.path.expanduser('~/.hangoutfix')
-    config.read(cfgFile)
+def main(argv):
+    # Parse the command-line flags.
+    flags = parser.parse_args(argv[1:])
+
+    # If the credentials don't exist or are invalid run through the native client
+    # flow. The Storage object will ensure that if successful the good
+    # credentials will get written back to the file.
+    storage = file.Storage('sample.dat')
+    credentials = storage.get()
+    if credentials is None or credentials.invalid:
+        credentials = tools.run_flow(FLOW, storage, flags)
+
+    # Create an httplib2.Http object to handle our HTTP requests and authorize it
+    # with our good Credentials.
+    http = httplib2.Http()
+    http = credentials.authorize(http)
+
+    # Construct the service object for the interacting with the Calendar API.
+    service = discovery.build('calendar', 'v3', http=http)
+
     try:
-        user = config.get('hangoutfix', 'user')
-        pw = config.get('hangoutfix', 'pw')
-    except:
-        print 'Seems you haven\'t created the %s file yet.' % cfgFile
-        print ' I will create you a template. Please fill it in.'
-        config = ConfigParser.RawConfigParser()
+        today = "%sZ" % (datetime.datetime.utcnow().isoformat())
+        enddate = "%sZ" % (datetime.datetime.utcnow() +
+                   datetime.timedelta(days=7)).isoformat()
+        print "Retrieving events from %s to %s" % (today, enddate)
+        events = service.events().list(calendarId=CalendarID, 
+                timeMin = today, timeMax = enddate,
+                showHiddenInvitations= True,
+                singleEvents = True).execute()
+        print "Found %i events" % (len(events['items']))
+        for event in events['items']:
+            print "-> %s" % event['summary']
+            if event.has_key('hangoutLink'):
+                print '\t With Hangout'
+                pprint.pprint(event)
+                if (not event.has_key('source') ) or (event['source']['title'] != 'Google Hangout'):
+                    if (not event['creator'].has_key('self')) or (event['creator']['self'] == false):
+                        print '\t\tBut I did not create it.'
+                        event = service.events().import_(calendarId = CalendarID, body = event).execute()
+                    event['source'] = {}
+                    event['source']['title'] = 'Google Hangout'
+                    event['source']['url'] = event['hangoutLink']
+                    event['privateCopy'] = True
+                    service.events().update(calendarId = CalendarID, eventId = event['id'], body = event).execute()
 
-        config.add_section('hangoutfix')
-        config.set('hangoutfix', 'user', 'GMAIL_HERE')
-        config.set('hangoutfix', 'pw', 'PASSWORD_HERE')
+    except client.AccessTokenRefreshError:
+        print ("The credentials have been revoked or expired, please re-run"
+               "the application to re-authorize")
 
-        # Writing our configuration file to 'example.cfg'
-        with open(cfgFile, 'wb') as configfile:
-            config.write(configfile)
-    else:
 
-        sample = HangoutFix(user, pw)
-        sample.Run()
-
+# For more information on the Calendar API you can visit:
+#
+#   https://developers.google.com/google-apps/calendar/firstapp
+#
+# For more information on the Calendar API Python library surface you
+# can visit:
+#
+#   https://developers.google.com/resources/api-libraries/documentation/calendar/v3/python/latest/
+#
+# For information on the Python Client Library visit:
+#
+#   https://developers.google.com/api-client-library/python/start/get_started
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
