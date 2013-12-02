@@ -64,18 +64,6 @@ class HangoutFix:
                         an_event.content.text = "%s<p />-- %s" % (an_event.content.text,url)
                            # Create a WebContent object
                         
-                        web_content = gdata.calendar.data.WebContent(url=url)
-
-                        # Create a WebContentLink object that contains the WebContent object
-                        title = 'Google Hangout'
-                        href = url
-                        type = 'text/html'
-                        web_content_link = gdata.calendar.data.WebContentLink(title=title, href=href,
-                            link_type=type, web_content=web_content)
-
-                        # Create an event that contains this web content
-                        an_event.link.append(web_content_link) 
-
                         an_event.batch_id = gdata.data.BatchId(text='update-request')
                         batchJob.AddUpdate(entry=an_event)
                         batchSize = batchSize +1
@@ -88,7 +76,7 @@ class HangoutFix:
 
           # iterate the response feed to get the operation status
             for entry in response_feed.entry:
-                if (entry.batch_status.code != 200):
+                if (int(entry.batch_status.code) != 200):
                     print "Error on update: %s - %s" % (entry.batch_status.code, entry.batch_status.reason)
 
 
