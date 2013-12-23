@@ -138,7 +138,7 @@ def main(argv):
                     tstart = time.time()
                     processed = aScript.run()
                     tend = time.time()
-                    print("  Processed %s items in %s" % (processed, tend-tstart))
+                    print("  Processed %s items in %i seconds" % (processed, tend-tstart))
                 else:
                     print("  Skipping, already captured")
 
