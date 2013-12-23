@@ -30,14 +30,19 @@ import httplib2
 import os
 import sys
 import datetime
-import pprint
+import tempfile
+import applescript
+import time
+
+from dateutil.parser import *
+from dateutil.tz import *
 
 from apiclient import discovery
 from oauth2client import file
 from oauth2client import client
 from oauth2client import tools
 
-CalendarID = '[FILL THIS IN]'
+CalendarID = '[FILL IN HERE]'
 
 # Parser for command-line arguments.
 parser = argparse.ArgumentParser(
@@ -84,30 +89,59 @@ def main(argv):
     # Construct the service object for the interacting with the Calendar API.
     service = discovery.build('calendar', 'v3', http=http)
 
+
+
     try:
         today = "%sZ" % (datetime.datetime.utcnow().isoformat())
         enddate = "%sZ" % (datetime.datetime.utcnow() +
-                   datetime.timedelta(days=7)).isoformat()
+                   datetime.timedelta(days=14)).isoformat()
         print "Retrieving events from %s to %s" % (today, enddate)
         events = service.events().list(calendarId=CalendarID, 
+                orderBy = "startTime",
                 timeMin = today, timeMax = enddate,
                 showHiddenInvitations= True,
                 singleEvents = True).execute()
         print "Found %i events" % (len(events['items']))
+ 
+        processedUIDs = []
         for event in events['items']:
-            print "-> %s" % event['summary']
             if event.has_key('hangoutLink'):
-                print '\t With Hangout'
-                pprint.pprint(event)
-                if (not event.has_key('source') ) or (event['source']['title'] != 'Google Hangout'):
-                    if (not event['creator'].has_key('self')) or (event['creator']['self'] == false):
-                        print '\t\tBut I did not create it.'
-                        event = service.events().import_(calendarId = CalendarID, body = event).execute()
-                    event['source'] = {}
-                    event['source']['title'] = 'Google Hangout'
-                    event['source']['url'] = event['hangoutLink']
-                    event['privateCopy'] = True
-                    service.events().update(calendarId = CalendarID, eventId = event['id'], body = event).execute()
+                if (event['start'].has_key("dateTime")):
+                    startTime = parse(event['start']['dateTime'])
+                else:
+                    startTime = parse(event['start']['date'])
+                # sDate = startTime.strftime("%A, %B %d, %Y %I:%M:%S %p")
+                uid = event['iCalUID'];
+                sDate = startTime.strftime("%A, %B %d, %Y  %I:%M:%S %p")
+                print "-> %s (%s) => %s" % (event['summary'], sDate, event['hangoutLink'])
+                if (event['iCalUID'] not in processedUIDs):
+                    sDate = startTime.strftime("%B %d %Y")
+                    processedUIDs.append(uid)
+                    aScript = applescript.AppleScript(r'''
+                        on run 
+                            tell application "Calendar"
+                                activate
+                                repeat until application "Calendar" is running
+                                    delay 1
+                                end repeat
+                                set thecount to 0
+                                repeat with myCal in calendars
+                                    set theEvents to (events of myCal whose uid = "%s")
+                                    set thecount to (thecount + (count of theEvents))
+                                    repeat with theEvent in theEvents
+                                        set (url of theEvent) to "%s"
+                                    end repeat
+                                end repeat
+                                return thecount as text
+                            end tell
+                        end run''' % (uid, event['hangoutLink']))
+                    tstart = time.time()
+                    processed = aScript.run()
+                    tend = time.time()
+                    print("  Processed %s items in %s" % (processed, tend-tstart))
+                else:
+                    print("  Skipping, already captured")
+
 
     except client.AccessTokenRefreshError:
         print ("The credentials have been revoked or expired, please re-run"
