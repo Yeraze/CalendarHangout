@@ -113,7 +113,7 @@ def main(argv):
                 # sDate = startTime.strftime("%A, %B %d, %Y %I:%M:%S %p")
                 uid = event['iCalUID'];
                 sDate = startTime.strftime("%A, %B %d, %Y  %I:%M:%S %p")
-                print "-> %s (%s) => %s" % (event['summary'], sDate, event['hangoutLink'])
+                print "-> %s (%s) " % (event['summary'], sDate)
                 if (event['iCalUID'] not in processedUIDs):
                     sDate = startTime.strftime("%B %d %Y")
                     processedUIDs.append(uid)
