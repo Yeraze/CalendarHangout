@@ -42,7 +42,7 @@ from oauth2client import file
 from oauth2client import client
 from oauth2client import tools
 
-CalendarID = '[FILL IN HERE]'
+CalendarID = "FILL IN HERE"
 
 # Parser for command-line arguments.
 parser = argparse.ArgumentParser(
@@ -95,15 +95,28 @@ def main(argv):
         today = "%sZ" % (datetime.datetime.utcnow().isoformat())
         enddate = "%sZ" % (datetime.datetime.utcnow() +
                    datetime.timedelta(days=14)).isoformat()
-        print "Retrieving events from %s to %s" % (today, enddate)
+        print("Retrieving events from %s to %s" % (today, enddate))
         events = service.events().list(calendarId=CalendarID, 
                 orderBy = "startTime",
                 timeMin = today, timeMax = enddate,
                 showHiddenInvitations= True,
                 singleEvents = True).execute()
-        print "Found %i events" % (len(events['items']))
+        print("Found %i events" % (len(events['items'])))
  
         processedUIDs = []
+        print('launching calendar...')
+        calScript = applescript.AppleScript(r'''
+                        on run
+                            tell application "Calendar"
+                                activate
+                                repeat until application "Calendar" is running
+                                    delay 1
+                                end repeat
+                            end tell
+                        end run
+                        ''')
+        calScript.run();
+
         for event in events['items']:
             if event.has_key('hangoutLink'):
                 if (event['start'].has_key("dateTime")):
@@ -113,17 +126,13 @@ def main(argv):
                 # sDate = startTime.strftime("%A, %B %d, %Y %I:%M:%S %p")
                 uid = event['iCalUID'];
                 sDate = startTime.strftime("%A, %B %d, %Y  %I:%M:%S %p")
-                print "-> %s (%s) " % (event['summary'], sDate)
+                print( "-> %s (%s) " % (event['summary'], sDate))
                 if (event['iCalUID'] not in processedUIDs):
                     sDate = startTime.strftime("%B %d %Y")
                     processedUIDs.append(uid)
                     aScript = applescript.AppleScript(r'''
                         on run 
                             tell application "Calendar"
-                                activate
-                                repeat until application "Calendar" is running
-                                    delay 1
-                                end repeat
                                 set thecount to 0
                                 repeat with myCal in calendars
                                     set theEvents to (events of myCal whose uid = "%s")
