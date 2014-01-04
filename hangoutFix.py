@@ -1,3 +1,4 @@
+#!/usr/local/bin/python
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2013 Google Inc.
@@ -55,7 +56,7 @@ parser = argparse.ArgumentParser(
 # application, including client_id and client_secret. You can see the Client ID
 # and Client secret on the APIs page in the Cloud Console:
 # <https://cloud.google.com/console#/project/157180257281/apiui>
-CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
+CLIENT_SECRETS = os.path.expanduser('~/.hangoutFix/client_secrets.json')
 
 # Set up a Flow object to be used for authentication.
 # Add one or more of the following scopes. PLEASE ONLY ADD THE SCOPES YOU
@@ -76,7 +77,7 @@ def main(argv):
     # If the credentials don't exist or are invalid run through the native client
     # flow. The Storage object will ensure that if successful the good
     # credentials will get written back to the file.
-    storage = file.Storage('sample.dat')
+    storage = file.Storage(os.path.expanduser('~/.hangoutFix/storage.dat'))
     credentials = storage.get()
     if credentials is None or credentials.invalid:
         credentials = tools.run_flow(FLOW, storage, flags)
