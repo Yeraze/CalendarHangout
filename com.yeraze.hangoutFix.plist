@@ -8,6 +8,10 @@
         <array>
             <string>/Users/rhand/Development/CalendarHangout/hangoutFix.py</string>
         </array>
+        <key>StandardOutPath</key>
+        <string>/Users/rhand/.hangoutFix/output.log</string>
+        <key>StandardErrorPath</key>
+        <string>/Users/rhand/.hangoutFix/error.log</string>
         <key>StartInterval</key>
         <integer>86400</integer>
     </dict>
