@@ -18,6 +18,24 @@ Before running this, you need to get:
 	* Easiest way to get that is via [this link](https://developers.google.com/api-client-library/python/start/installation)
 	* simply select "Calendar API" and "Command Line" platform, and it will walk you through the steps from there.
 
+Now, that list of prereqs may seem daunting to the Python-uninitiated, but it's not bad.  Just do this:
+
+```bash
+easy_install pip
+pip install py_applescript
+pip install dateutils
+pip install --upgrade google-api-python-client
+
+```
+
+If you're a [Homebrew](http://brew.sh) User, then you'll optionally also need to do:
+```bash
+pip install pyobjc
+```
+_That one takes a while_.
+
+If any of those complain about permission denied, then just prefix the command with `sudo` and it should work.
+
 First Run
 ---------
 Before  your first run (which you'll need to do manually from the commandline)
