@@ -15,8 +15,12 @@ Before running this, you need to get:
 * The GData Python Client v3 - Included
 	* Or you can install it globally via `easy_install --upgrade google-api-python-client`
 * client_secrets.json file
-	* Easiest way to get that is via [this link](https://developers.google.com/api-client-library/python/start/installation)
-	* simply select "Calendar API" and "Command Line" platform, and it will walk you through the steps from there.
+	* Easiest way to get that is via [The Google Developer Console](https://console.developers.google.com/project)
+	* Create a new project, give it a good name like "Calendar Hangouts" (This can take a minute or two)
+	* Select "Enable an API" and burn on the "Calendar API"
+	* Under "APIs & Auth", click "Credentials"
+	* Click "Create a new Client ID", and select "Installed Application", select platform "Other"
+	* Then select "Download JSON" 
 
 Now, that list of prereqs may seem daunting to the Python-uninitiated, but it's not bad.  Just do this:
 
