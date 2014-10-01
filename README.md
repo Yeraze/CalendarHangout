@@ -17,7 +17,7 @@ Before running this, you need to get:
 * client_secrets.json file
 	* Easiest way to get that is via [The Google Developer Console](https://console.developers.google.com/project)
 	* Create a new project, give it a good name like "Calendar Hangouts" (This can take a minute or two)
-	* Select "Enable an API" and burn on the "Calendar API"
+	* Select "Enable an API" and turn on the "Calendar API"
 	* Under "APIs & Auth", click "Credentials"
 	* Click "Create a new Client ID", and select "Installed Application", select platform "Other"
 	* Then select "Download JSON" 
