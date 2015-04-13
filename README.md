@@ -46,7 +46,7 @@ Before  your first run (which you'll need to do manually from the commandline)
 
 1. Create a `~/.hangoutFix` directory
 2. Place your shiny new `client_secrets.json` file in it.
-3. Change the "CalendarID" at the Top of `hangoutFix.py` to your calendar.
+3. Change the "CalendarID" at the Top of `hangoutFix.py` to your calendar. (note: if using Google Apps for Domains, this is your e-mail address)
 4. Now run it.. It will redirect you to your browser to enable access.
 5. Once you've granted access, it should take off and update.
 
