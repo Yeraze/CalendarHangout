@@ -120,6 +120,9 @@ def main(argv):
 
         for event in events['items']:
             if event.has_key('hangoutLink'):
+                accepted = [ attend for attend in event['attendees'] \
+                             if (attend.has_key('self') \
+                             and attend['responseStatus'] != 'declined') ]
                 if (event['start'].has_key("dateTime")):
                     startTime = parse(event['start']['dateTime'])
                 else:
@@ -128,29 +131,35 @@ def main(argv):
                 uid = event['iCalUID'];
                 sDate = startTime.strftime("%A, %B %d, %Y  %I:%M:%S %p")
                 print( "-> %s (%s) " % (event['summary'], sDate))
-                if (event['iCalUID'] not in processedUIDs):
-                    sDate = startTime.strftime("%B %d %Y")
-                    processedUIDs.append(uid)
-                    aScript = applescript.AppleScript(r'''
-                        on run 
-                            tell application "Calendar"
-                                set thecount to 0
-                                repeat with myCal in calendars
-                                    set theEvents to (events of myCal whose uid = "%s")
-                                    set thecount to (thecount + (count of theEvents))
-                                    repeat with theEvent in theEvents
-                                        set (url of theEvent) to "%s"
+                # Check if this meeting not declined in Hangouts
+                if len(accepted) != 0:
+                    if event['iCalUID']:
+                        sDate = startTime.strftime("%B %d %Y")
+                        processedUIDs.append(uid)
+                        aScript = applescript.AppleScript(r'''
+                            on run
+                                tell application "Calendar"
+                                    set thecount to 0
+                                    repeat with myCal in calendars
+                                        set theEvents to (events of myCal whose uid = "%s")
+                                        set thecount to (thecount + (count of theEvents))
+                                        repeat with theEvent in theEvents
+                                            set (url of theEvent) to "%s"
+                                        end repeat
                                     end repeat
-                                end repeat
-                                return thecount as text
-                            end tell
-                        end run''' % (uid, event['hangoutLink']))
-                    tstart = time.time()
-                    processed = aScript.run()
-                    tend = time.time()
-                    print("  Processed %s items in %i seconds" % (processed, tend-tstart))
+                                    return thecount as text
+                                end tell
+                            end run''' % (uid, event['hangoutLink']))
+                        tstart = time.time()
+                        processed = aScript.run()
+                        tend = time.time()
+                        print("  Processed %s items in %i seconds" % (processed, tend-tstart))
+                    else:
+                        print("  Skipping, already captured")
                 else:
-                    print("  Skipping, already captured")
+                    print ("  Skipping, declined")
+            else:
+                print ("how it is possible")
 
 
     except client.AccessTokenRefreshError:
