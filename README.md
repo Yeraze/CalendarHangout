@@ -1,12 +1,12 @@
-CalendarHangout
+**CalendarHangout**
 ===============
 
 Python script to process Google Calendar and Add Hangout links to Description.
 
 
-Prereqs
+Prerequestites
 -------
-Before running this, you need to get:
+Before running this, you need to get this:
 
 * Python
 * The py-applescript python module
